@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Environment files (never commit secrets!)
+.env
+*.env
+
+# Database
+*.db
+*.sqlite3
+test.db
+
+# Alembic (keep versions/ but not local build artifacts)
+# alembic/versions/*.py  -- keep these tracked
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# MyPy
+.mypy_cache/
+
+# Antigravity / Claude AI tooling
+.claude/
