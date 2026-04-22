@@ -16,6 +16,11 @@ from app.middleware.error_handler import (
     generic_exception_handler,
 )
 from app.routers import auth, registration, payment, team, submission, admin, event
+from app.config.database import engine
+from app.models import models
+
+# Create database tables if they don't exist
+models.Base.metadata.create_all(bind=engine)
 
 # ---------------------------------------------------------------------------
 # Rate limiter
@@ -38,10 +43,18 @@ app.state.limiter = limiter
 # ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
+# In development: allow all origins so Swagger UI (localhost:8000/docs) works.
+# In production: restrict to the configured FRONTEND_URL only.
+_allowed_origins = (
+    ["*"]
+    if settings.APP_ENV == "development"
+    else [settings.FRONTEND_URL, "http://localhost:8000"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
-    allow_credentials=True,
+    allow_origins=_allowed_origins,
+    allow_credentials=settings.APP_ENV != "development",  # credentials + wildcard is not allowed
     allow_methods=["*"],
     allow_headers=["*"],
 )

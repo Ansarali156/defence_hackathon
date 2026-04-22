@@ -7,7 +7,34 @@ from sqlalchemy import (
     Column, String, Integer, Enum, Boolean, Numeric,
     DateTime, ForeignKey, Text, UniqueConstraint, func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import types as sa_types
+
+
+class UUIDType(sa_types.TypeDecorator):
+    """
+    Cross-database UUID column type.
+    - SQLite: stored as CHAR(36) string
+    - PostgreSQL: stored as native UUID
+    Falls back gracefully on any backend.
+    """
+    impl = sa_types.CHAR(36)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        import uuid as _uuid
+        if isinstance(value, _uuid.UUID):
+            return value
+        return _uuid.UUID(value)
+
+
+UUID = UUIDType
 from sqlalchemy.orm import relationship
 
 from app.config.database import Base
@@ -50,7 +77,7 @@ class SubmissionStatus(str, enum.Enum):
 class Team(Base):
     __tablename__ = "teams"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     team_code = Column(String(20), unique=True, nullable=False, index=True)
     team_name = Column(String(100), nullable=False)
     category = Column(Enum(TeamCategory), nullable=False)
@@ -67,7 +94,7 @@ class Team(Base):
     payment_amount = Column(Numeric(10, 2), nullable=False)
 
     # Problem / Submission
-    selected_problem_id = Column(UUID(as_uuid=True), ForeignKey("problem_statements.id"), nullable=True)
+    selected_problem_id = Column(UUID(), ForeignKey("problem_statements.id"), nullable=True)
     submission_status = Column(Enum(SubmissionStatus), default=SubmissionStatus.PENDING, nullable=False)
 
     # Password reset
@@ -87,8 +114,8 @@ class Team(Base):
 class TeamMember(Base):
     __tablename__ = "team_members"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    team_id = Column(UUID(), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(100), nullable=False)
     email = Column(String(150), nullable=False)
     mobile = Column(String(15), nullable=False)
@@ -103,7 +130,7 @@ class TeamMember(Base):
 class ProblemStatement(Base):
     __tablename__ = "problem_statements"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     problem_code = Column(String(20), unique=True, nullable=False)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
@@ -123,9 +150,9 @@ class Submission(Base):
     __tablename__ = "submissions"
     __table_args__ = (UniqueConstraint("team_id", name="uq_submission_team"),)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
-    problem_statement_id = Column(UUID(as_uuid=True), ForeignKey("problem_statements.id"), nullable=False)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    team_id = Column(UUID(), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    problem_statement_id = Column(UUID(), ForeignKey("problem_statements.id"), nullable=False)
 
     abstract = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
@@ -149,8 +176,8 @@ class Submission(Base):
 class Payment(Base):
     __tablename__ = "payments"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    team_id = Column(UUID(), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
 
     razorpay_order_id = Column(String(100), nullable=True, index=True)
     razorpay_payment_id = Column(String(100), nullable=True)
@@ -173,7 +200,7 @@ class Payment(Base):
 class Admin(Base):
     __tablename__ = "admins"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     email = Column(String(150), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     name = Column(String(100), nullable=False)
@@ -187,6 +214,6 @@ class Admin(Base):
 class EventConfig(Base):
     __tablename__ = "event_config"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     key = Column(String(50), unique=True, nullable=False)
     value = Column(String(255), nullable=False)

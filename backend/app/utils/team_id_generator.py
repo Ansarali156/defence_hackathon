@@ -19,16 +19,14 @@ def calculate_fee(category: TeamCategory, team_size: int) -> int:
 
 def generate_team_code(db: Session, category: TeamCategory, year: int = 2026) -> str:
     """
-    Atomically generate a unique team code.
-    Uses a SELECT COUNT with FOR UPDATE on the teams table to prevent races.
+    Generate a unique team code.
+    Uses COUNT of existing codes for the prefix to determine next sequence number.
+    Note: For high-concurrency production, use a DB sequence instead.
     """
     prefix = "STU" if category == TeamCategory.STUDENT else "STR"
 
-    # Lock and count existing codes for this prefix to get next sequence
     result = db.execute(
-        text(
-            "SELECT COUNT(*) FROM teams WHERE team_code LIKE :pattern FOR UPDATE"
-        ),
+        text("SELECT COUNT(*) FROM teams WHERE team_code LIKE :pattern"),
         {"pattern": f"{prefix}-{year}-%"},
     )
     count = result.scalar() or 0

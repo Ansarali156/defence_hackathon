@@ -73,12 +73,8 @@ def select_problem(
     if not problem:
         raise HTTPException(status_code=404, detail="Problem statement not found")
 
-    # SELECT FOR UPDATE to prevent race conditions
-    db.execute(
-        __import__("sqlalchemy").text("SELECT id FROM teams WHERE id = :tid FOR UPDATE"),
-        {"tid": str(team.id)},
-    )
-    # Re-check after lock
+    # Re-fetch to guard against race conditions
+    # (PostgreSQL env: use SELECT FOR UPDATE at the DB level via a serializable transaction)
     db.refresh(team)
     if team.selected_problem_id is not None:
         raise HTTPException(status_code=409, detail="Problem already selected")

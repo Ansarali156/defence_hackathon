@@ -70,6 +70,9 @@ PROBLEM_STATEMENTS = [
 
 
 def seed():
+    # Make sure tables exist
+    Base.metadata.create_all(bind=engine)
+    
     db: Session = SessionLocal()
     try:
         # --- Admin ---
@@ -110,10 +113,10 @@ def seed():
                 print(f"[=] {key} already set, skipping")
 
         db.commit()
-        print("\n✅ Seed complete!")
+        print("\n[OK] Seed complete!")
     except Exception as e:
         db.rollback()
-        print(f"\n❌ Seed failed: {e}")
+        print(f"\n[ERROR] Seed failed: {e}")
         sys.exit(1)
     finally:
         db.close()
